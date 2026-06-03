@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  claude-chat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: claude-chat-app
+    ports:
+      - "8501:8501"
+    
+    # Load environment variables from .env file
+    env_file: .env
+    
+    # Environment variables
+    environment:
+      - PYTHONUNBUFFERED=1
+      - STREAMLIT_SERVER_HEADLESS=true
+      - STREAMLIT_SERVER_ENABLE_CORS=false
+      - STREAMLIT_SERVER_PORT=8501
+      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+    
+    # Volumes for persistent data
+    volumes:
+      # .env file (read-only)
+      - ./.env:/app/.env:ro
+      
+      # Chat history and data persistence
+      - claude_data:/app/data
+      
+      # Optional: Streamlit cache directory
+      - streamlit_cache:/.streamlit
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Network
+    networks:
+      - claude-network
+
+# Named volumes for persistence
+volumes:
+  claude_data:
+    driver: local
+  streamlit_cache:
+    driver: local
+
+# Networks
+networks:
+  claude-network:
+    driver: bridge
